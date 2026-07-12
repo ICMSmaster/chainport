@@ -10,6 +10,7 @@ interface OrderState {
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   addOrder: (order: Order) => void;
+  markOrderReviewed: (orderId: string) => void;
 }
 
 export const useOrderStore = create<OrderState>()(
@@ -39,6 +40,10 @@ export const useOrderStore = create<OrderState>()(
         }),
       clearCart: () => set({ cartItems: [] }),
       addOrder: (order) => set({ orders: [...get().orders, order] }),
+      markOrderReviewed: (orderId) =>
+        set({
+          orders: get().orders.map((o) => (o.id === orderId ? { ...o, status: "reviewed" } : o)),
+        }),
     }),
     { name: "chainport-order" }
   )

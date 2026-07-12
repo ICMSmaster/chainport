@@ -170,3 +170,56 @@ export function processExchange(direction: "KRW_TO_CHN" | "CHN_TO_KRW", amount: 
     });
   }
 }
+import { useReviewStore } from "@/store/reviewStore";
+import { useSystemStore as _useSystemStoreForReview } from "@/store/systemStore";
+
+// ── 리뷰 작성 → CHN 보상 지급 ──
+export function processReview(params: {
+  orderId: string;
+  productId: string;
+  rating: number;
+  content: string;
+}) {
+  const { orderId, productId, rating, content } = params;
+  const wallet = useWalletStore.getState();
+  const ledger = useLedgerStore.getState();
+  const user = useUserStore.getState();
+  const orderStore = useOrderStore.getState();
+  const reviewStore = useReviewStore.getState();
+  const system = _useSystemStoreForReview.getState();
+
+  const rewardChn = system.marketConfig.reviewRewardChn;
+  const now = new Date().toISOString();
+  const userId = user.currentUser.id;
+
+  // 1) 리뷰 저장
+  reviewStore.addReview({
+    id: `review_${Date.now()}`,
+    orderId,
+    productId,
+    userId,
+    rating,
+    content,
+    rewardChn,
+    createdAt: now,
+  });
+
+  // 2) CHN 보상 지급
+  wallet.addChn(rewardChn);
+
+  // 3) 원장 기록
+  ledger.record({
+    id: `tx_${Date.now()}_review`,
+    userId,
+    type: "REVIEW_REWARD",
+    amountChn: rewardChn,
+    relatedOrderId: orderId,
+    memo: "리뷰 작성 보상",
+    createdAt: now,
+  });
+
+  // 4) 주문을 "리뷰 완료" 상태로 변경
+  orderStore.markOrderReviewed(orderId);
+
+  return rewardChn;
+}
