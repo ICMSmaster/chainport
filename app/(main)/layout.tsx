@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV = [
   { href: "/", label: "홈" },
@@ -12,22 +17,56 @@ const NAV = [
 ];
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+
   return (
     <div>
-      <header style={{ borderBottom: "1px solid #eee", padding: "16px 24px", display: "flex", gap: 20, alignItems: "center" }}>
+      <header className="border-b px-4 sm:px-6 py-4 flex items-center gap-4">
         <strong style={{ color: "#1B4D8F" }}>CHAINPORT</strong>
-        <nav style={{ display: "flex", gap: 14 }}>
+
+        {/* 데스크탑 메뉴: 화면이 넓을 때만 보임 */}
+        <nav className="hidden md:flex gap-4">
           {NAV.map((item) => (
-            <Link key={item.href} href={item.href} style={{ fontSize: 14 }}>
+            <Link key={item.href} href={item.href} className="text-sm">
               {item.label}
             </Link>
           ))}
         </nav>
-        <Link href="/admin" style={{ marginLeft: "auto", fontSize: 13, color: "#999" }}>
+
+        <Link href="/admin" className="ml-auto hidden md:block text-xs text-gray-400">
           관리자
         </Link>
+
+        {/* 모바일 햄버거 버튼: 화면이 좁을 때만 보임 */}
+        <button className="ml-auto md:hidden" onClick={() => setOpen(true)}>
+          <Menu size={22} />
+        </button>
+
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent side="right">
+            <nav className="flex flex-col gap-1 mt-10">
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-base py-3 border-b"
+                  onClick={() => setOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <Link
+                href="/admin"
+                className="text-base py-3 text-gray-400"
+                onClick={() => setOpen(false)}
+              >
+                관리자
+              </Link>
+            </nav>
+          </SheetContent>
+        </Sheet>
       </header>
-      <main style={{ padding: 24 }}>{children}</main>
+      <main className="p-4 sm:p-6">{children}</main>
     </div>
   );
 }

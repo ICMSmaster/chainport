@@ -1,4 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AdminGate } from "@/components/features/admin/AdminGate";
+import { clearAdminAuthenticated } from "@/lib/adminAuth";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, LogOut } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "개요" },
@@ -9,19 +16,40 @@ const NAV = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    clearAdminAuthenticated();
+    router.push("/");
+  };
+
   return (
-    <div style={{ display: "flex" }}>
-      <aside style={{ width: 200, borderRight: "1px solid #eee", padding: 20, minHeight: "100vh" }}>
-        <strong style={{ color: "#1B4D8F" }}>관리자</strong>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} style={{ fontSize: 14 }}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-      <main style={{ padding: 24, flex: 1 }}>{children}</main>
-    </div>
+    <AdminGate>
+      <div style={{ display: "flex" }}>
+        <aside style={{ width: 220, borderRight: "1px solid #eee", padding: 20, minHeight: "100vh" }} className="flex flex-col">
+          <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-black mb-6">
+            <ArrowLeft size={16} />
+            사이트로 돌아가기
+          </Link>
+
+          <strong style={{ color: "#1B4D8F" }}>관리자</strong>
+          <nav className="flex flex-col gap-2 mt-4">
+            {NAV.map((item) => (
+              <Link key={item.href} href={item.href} className="text-sm py-1">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="mt-auto pt-6">
+            <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
+              <LogOut size={14} className="mr-2" />
+              로그아웃
+            </Button>
+          </div>
+        </aside>
+        <main style={{ padding: 24, flex: 1 }}>{children}</main>
+      </div>
+    </AdminGate>
   );
 }
