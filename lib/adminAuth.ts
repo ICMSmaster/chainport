@@ -1,5 +1,5 @@
 // 관리자 화면 진입용 비밀번호입니다. 원하는 값으로 바꾸셔도 됩니다.
-export const ADMIN_PASSWORD = "young";
+export const ADMIN_PASSWORD = "young0421";
 
 export const ADMIN_SESSION_KEY = "chainport-admin-auth";
 
