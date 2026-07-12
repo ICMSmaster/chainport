@@ -1,21 +1,20 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Advertisement } from "@/types";
-import { MOCK_AD_PLANS } from "@/lib/mockSeed";
+import { Transaction } from "@/types";
 
-interface AdState {
-  adPlans: typeof MOCK_AD_PLANS;
-  myAds: Advertisement[];
-  addAd: (ad: Advertisement) => void;
+interface LedgerState {
+  transactions: Transaction[];
+  record: (tx: Transaction) => void;
+  reset: () => void;
 }
 
-export const useAdStore = create<AdState>()(
+export const useLedgerStore = create<LedgerState>()(
   persist(
     (set, get) => ({
-      adPlans: MOCK_AD_PLANS,
-      myAds: [],
-      addAd: (ad) => set({ myAds: [...get().myAds, ad] }),
+      transactions: [],
+      record: (tx) => set({ transactions: [...get().transactions, tx] }),
+      reset: () => set({ transactions: [] }),
     }),
-    { name: "chainport-ad" }
+    { name: "chainport-ledger" }
   )
 );

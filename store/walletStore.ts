@@ -14,7 +14,7 @@ export const useWalletStore = create<WalletState>()(
   persist(
     (set) => ({
       krwBalance: 500000,
-      chnBalance: 100,
+      chnBalance: 5000,
       charge: (krw) => set((s) => ({ krwBalance: s.krwBalance + krw })),
       addChn: (chn) => set((s) => ({ chnBalance: s.chnBalance + chn })),
       deductKrw: (krw) => set((s) => ({ krwBalance: Math.max(0, s.krwBalance - krw) })),

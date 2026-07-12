@@ -1,25 +1,21 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Investment } from "@/types";
+import { MOCK_INVESTMENT_PRODUCTS } from "@/lib/mockSeed";
 
-interface PricePoint {
-  time: string;
-  price: number;
+interface InvestState {
+  investmentProducts: typeof MOCK_INVESTMENT_PRODUCTS;
+  myInvestments: Investment[];
+  addInvestment: (inv: Investment) => void;
 }
 
-interface MarketState {
-  currentPrice: number;
-  priceHistory: PricePoint[];
-  tick: () => void;
-}
-
-export const useMarketStore = create<MarketState>()((set, get) => ({
-  currentPrice: 120,
-  priceHistory: [{ time: new Date().toISOString(), price: 120 }],
-  tick: () => {
-    const last = get().currentPrice;
-    const next = Math.max(1, last + (Math.random() - 0.5) * 5);
-    set({
-      currentPrice: next,
-      priceHistory: [...get().priceHistory, { time: new Date().toISOString(), price: next }].slice(-50),
-    });
-  },
-}));
+export const useInvestStore = create<InvestState>()(
+  persist(
+    (set, get) => ({
+      investmentProducts: MOCK_INVESTMENT_PRODUCTS,
+      myInvestments: [],
+      addInvestment: (inv) => set({ myInvestments: [...get().myInvestments, inv] }),
+    }),
+    { name: "chainport-invest" }
+  )
+);
