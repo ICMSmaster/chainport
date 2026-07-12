@@ -296,3 +296,83 @@ export function processInvestWithdraw(investmentId: string) {
 
   return { isMatured, yieldAmount, totalReturn };
 }
+import { useAdStore } from "@/store/adStore";
+import { useProductStore } from "@/store/productStore";
+import { AdPlan } from "@/types";
+
+// ── 광고 결제 (CHN 소모 → 상품 노출 강화, 순환 경제의 소각/유통 고리) ──
+export function processAdPurchase(productId: string, plan: AdPlan) {
+  const wallet = useWalletStore.getState();
+  const ledger = useLedgerStore.getState();
+  const user = useUserStore.getState();
+  const adStore = useAdStore.getState();
+  const productStore = useProductStore.getState();
+  const system = useSystemStore.getState();
+
+  const now = new Date();
+  const endsAt = new Date(now.getTime() + plan.durationDays * DEMO_DAY_MS);
+  const userId = user.currentUser.id;
+  const adId = `ad_${Date.now()}`;
+
+  // 1) CHN 차감
+  wallet.deductChn(plan.costChn);
+
+  // 2) 광고 등록
+  adStore.addAd({
+    id: adId,
+    productId,
+    sellerId: userId,
+    planId: plan.id,
+    startedAt: now.toISOString(),
+    endsAt: endsAt.toISOString(),
+    status: "active",
+  });
+
+  // 3) 상품을 "광고 중" 상태로 표시
+  productStore.setAdBoosted(productId, true);
+
+  // 4) 결제 원장 기록
+  ledger.record({
+    id: `tx_${Date.now()}_ad`,
+    userId,
+    type: "AD_PAYMENT",
+    amountChn: plan.costChn,
+    relatedOrderId: adId,
+    memo: `${plan.label} 광고 결제`,
+    createdAt: now.toISOString(),
+  });
+
+  // 5) 광고비 중 일부를 소각 (보고서: "수수료는 플랫폼 운영과 토큰 소각에 활용")
+  const burnAmount = plan.costChn * system.tokenomicsConfig.burnRate;
+  ledger.record({
+    id: `tx_${Date.now()}_adburn`,
+    userId: "SYSTEM",
+    type: "BURN",
+    amountChn: burnAmount,
+    relatedOrderId: adId,
+    memo: "광고 수수료 중 일부 소각",
+    createdAt: now.toISOString(),
+  });
+}
+
+// ── 광고 만료 처리 (기간이 지난 광고를 자동으로 종료 상태로 바꿉니다) ──
+export function checkAndExpireAds() {
+  const adStore = useAdStore.getState();
+  const productStore = useProductStore.getState();
+  const now = Date.now();
+
+  adStore.myAds.forEach((ad) => {
+    if (ad.status === "active" && now >= new Date(ad.endsAt).getTime()) {
+      useAdStore.setState({
+        myAds: useAdStore.getState().myAds.map((a) => (a.id === ad.id ? { ...a, status: "ended" } : a)),
+      });
+      // 해당 상품을 광고 중인 다른 활성 광고가 없으면 뱃지를 끕니다.
+      const stillBoosted = useAdStore
+        .getState()
+        .myAds.some((a) => a.productId === ad.productId && a.status === "active");
+      if (!stillBoosted) {
+        productStore.setAdBoosted(ad.productId, false);
+      }
+    }
+  });
+}
