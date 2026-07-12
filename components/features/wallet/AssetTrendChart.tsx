@@ -30,7 +30,7 @@ export function AssetTrendChart({ transactions }: { transactions: Transaction[] 
         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
         <XAxis dataKey="index" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} />
-        <Tooltip formatter={(v: number) => [`${v} CHN`, "누적 변화"]} />
+        <Tooltip formatter={(v) => [`${v} CHN`, "누적 변화"]} />
         <Line type="monotone" dataKey="chn" stroke="#0EA5A5" strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>
