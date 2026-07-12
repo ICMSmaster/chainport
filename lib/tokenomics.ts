@@ -223,3 +223,76 @@ export function processReview(params: {
 
   return rewardChn;
 }
+import { useInvestStore } from "@/store/investStore";
+import { InvestmentProduct } from "@/types";
+
+// 시연용 시간 압축 배율: 1일 = 10초
+export const DEMO_DAY_MS = 10 * 1000;
+
+// ── 투자 예치 ──
+export function processInvestDeposit(product: InvestmentProduct, amountChn: number) {
+  const wallet = useWalletStore.getState();
+  const ledger = useLedgerStore.getState();
+  const user = useUserStore.getState();
+  const investStore = useInvestStore.getState();
+
+  const now = new Date();
+  const maturesAt = new Date(now.getTime() + product.lockupDays * DEMO_DAY_MS);
+  const userId = user.currentUser.id;
+  const investmentId = `inv_${Date.now()}`;
+
+  wallet.deductChn(amountChn);
+
+  investStore.addInvestment({
+    id: investmentId,
+    userId,
+    productId: product.id,
+    principalChn: amountChn,
+    startedAt: now.toISOString(),
+    maturesAt: maturesAt.toISOString(),
+    status: "active",
+  });
+
+  ledger.record({
+    id: `tx_${Date.now()}_invest`,
+    userId,
+    type: "INVEST_DEPOSIT",
+    amountChn,
+    relatedOrderId: investmentId,
+    memo: `${product.name} 예치`,
+    createdAt: now.toISOString(),
+  });
+}
+
+// ── 투자 해지 (만기 시: 원금+수익 / 중도 해지 시: 원금만) ──
+export function processInvestWithdraw(investmentId: string) {
+  const wallet = useWalletStore.getState();
+  const ledger = useLedgerStore.getState();
+  const user = useUserStore.getState();
+  const investStore = useInvestStore.getState();
+
+  const investment = investStore.myInvestments.find((i) => i.id === investmentId);
+  if (!investment) return;
+
+  const product = investStore.investmentProducts.find((p) => p.id === investment.productId);
+  const now = new Date();
+  const isMatured = now.getTime() >= new Date(investment.maturesAt).getTime();
+
+  const yieldAmount = isMatured && product ? investment.principalChn * product.expectedYieldRate : 0;
+  const totalReturn = investment.principalChn + yieldAmount;
+
+  wallet.addChn(totalReturn);
+  investStore.updateInvestmentStatus(investmentId, isMatured ? "matured" : "withdrawn");
+
+  ledger.record({
+    id: `tx_${Date.now()}_investreturn`,
+    userId: user.currentUser.id,
+    type: "INVEST_RETURN",
+    amountChn: totalReturn,
+    relatedOrderId: investmentId,
+    memo: isMatured ? `만기 해지 (수익 ${yieldAmount.toFixed(2)} CHN 포함)` : "중도 해지 (수익 없음)",
+    createdAt: now.toISOString(),
+  });
+
+  return { isMatured, yieldAmount, totalReturn };
+}

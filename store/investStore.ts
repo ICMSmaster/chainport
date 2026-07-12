@@ -7,6 +7,7 @@ interface InvestState {
   investmentProducts: typeof MOCK_INVESTMENT_PRODUCTS;
   myInvestments: Investment[];
   addInvestment: (inv: Investment) => void;
+  updateInvestmentStatus: (id: string, status: Investment["status"]) => void;
 }
 
 export const useInvestStore = create<InvestState>()(
@@ -15,6 +16,12 @@ export const useInvestStore = create<InvestState>()(
       investmentProducts: MOCK_INVESTMENT_PRODUCTS,
       myInvestments: [],
       addInvestment: (inv) => set({ myInvestments: [...get().myInvestments, inv] }),
+      updateInvestmentStatus: (id, status) =>
+        set({
+          myInvestments: get().myInvestments.map((inv) =>
+            inv.id === id ? { ...inv, status } : inv
+          ),
+        }),
     }),
     { name: "chainport-invest" }
   )
