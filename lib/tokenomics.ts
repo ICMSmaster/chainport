@@ -115,3 +115,58 @@ export function processPurchase(
 
   return { order: newOrder, totalKrw, totalChn, split: { seller, company, reserve, burn } };
 }
+// ── 충전 (KRW를 무료로 채워넣는 가상 충전) ──
+export function processCharge(krwAmount: number) {
+  const wallet = useWalletStore.getState();
+  const ledger = useLedgerStore.getState();
+  const user = useUserStore.getState();
+
+  wallet.charge(krwAmount);
+
+  ledger.record({
+    id: `tx_${Date.now()}_charge`,
+    userId: user.currentUser.id,
+    type: "CHARGE",
+    amountKrw: krwAmount,
+    memo: "KRW 충전",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+// ── 환전 (KRW ↔ CHN, 거래소 현재 시세 기준) ──
+export function processExchange(direction: "KRW_TO_CHN" | "CHN_TO_KRW", amount: number) {
+  const wallet = useWalletStore.getState();
+  const ledger = useLedgerStore.getState();
+  const market = useMarketStore.getState();
+  const user = useUserStore.getState();
+  const price = market.currentPrice;
+  const now = new Date().toISOString();
+
+  if (direction === "KRW_TO_CHN") {
+    const chnReceived = amount / price;
+    wallet.deductKrw(amount);
+    wallet.addChn(chnReceived);
+    ledger.record({
+      id: `tx_${Date.now()}_exbuy`,
+      userId: user.currentUser.id,
+      type: "EXCHANGE_BUY",
+      amountKrw: amount,
+      amountChn: chnReceived,
+      memo: `KRW → CHN 환전 (시세 ${price.toFixed(1)}원)`,
+      createdAt: now,
+    });
+  } else {
+    const krwReceived = amount * price;
+    wallet.deductChn(amount);
+    wallet.charge(krwReceived);
+    ledger.record({
+      id: `tx_${Date.now()}_exsell`,
+      userId: user.currentUser.id,
+      type: "EXCHANGE_SELL",
+      amountKrw: krwReceived,
+      amountChn: amount,
+      memo: `CHN → KRW 환전 (시세 ${price.toFixed(1)}원)`,
+      createdAt: now,
+    });
+  }
+}
