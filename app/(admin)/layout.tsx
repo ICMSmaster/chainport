@@ -9,6 +9,7 @@ import { ArrowLeft, LogOut } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "개요" },
+  { href: "/admin/products", label: "상품관리" },
   { href: "/admin/tokenomics", label: "토크노믹스" },
   { href: "/admin/users", label: "사용자" },
   { href: "/admin/transactions", label: "거래내역" },
